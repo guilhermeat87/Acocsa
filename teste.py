@@ -141,7 +141,7 @@ if not data.empty:
 else:
     st.warning("Não foi possível carregar dados do índice.")
 
-
+cols = st.columns(3)  # 👈 ESSA LINHA É OBRIGATÓRIA
 
 for i, row in enumerate(df_user.itertuples(index=False)):
     with cols[i % 3]:
@@ -153,6 +153,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
