@@ -111,7 +111,8 @@ data = ibov_df if indice == "IBOV" else ifix_df
 
 if not data.empty and len(data) >= 2:
 
-    close = data["Close"].dropna().tail(5)
+    close = data["Close"].dropna().tail(5).astype(float)
+
 
     # remove horário do eixo X
     close.index = close.index.date
@@ -120,7 +121,8 @@ if not data.empty and len(data) >= 2:
     y_min = close.min() * 0.998
     y_max = close.max() * 1.002
 
-    cor = "#00cc96" if close.iloc[-1] >= close.iloc[0] else "#ef553b"
+    cor = "#00cc96" if float(close.iloc[-1]) >= float(close.iloc[0]) else "#ef553b"
+
 
     fig = go.Figure()
 
@@ -159,6 +161,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
