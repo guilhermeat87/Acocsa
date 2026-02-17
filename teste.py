@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Monitor B3", layout="wide")
+st.set_page_config(page_title="Monitor de Ativos", layout="wide")
 
 # 🔹 Cole aqui o ID da sua planilha
 SHEET_ID = "1bNKnU-HzvB--KfREcXJAmxtvtEOuqDmeFo59QGJX0hw"
@@ -38,7 +38,7 @@ if "watchlist" not in st.session_state:
     st.session_state.watchlist = []
 
 
-st.title("📈 Monitor B3 (Google Sheets)")
+st.title("📈 Monitor de Ativos")
 
 df = load_sheet()
 
@@ -97,6 +97,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
