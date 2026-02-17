@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import yfinance as yf
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Monitor de Ativos", layout="wide")
 
@@ -84,8 +86,22 @@ st.subheader("Resumo")
 st.dataframe(df_user, use_container_width=True)
 
 
-st.subheader("Cards rápidos")
-cols = st.columns(3)
+st.subheader("📊 IBOVESPA - Últimos 5 dias")
+
+@st.cache_data(ttl=300)
+def load_ibov():
+    end = datetime.today()
+    start = end - timedelta(days=10)  # pega mais dias para garantir 5 pregões
+    ibov = yf.download("^BVSP", start=start, end=end, interval="1d")
+    return ibov
+
+ibov_df = load_ibov()
+
+if not ibov_df.empty:
+    st.line_chart(ibov_df["Close"])
+else:
+    st.warning("Não foi possível carregar dados do IBOV.")
+
 
 for i, row in enumerate(df_user.itertuples(index=False)):
     with cols[i % 3]:
@@ -97,6 +113,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
