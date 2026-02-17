@@ -92,7 +92,7 @@ st.subheader("📊 Índices de Mercado")
 @st.cache_data(ttl=300)
 def load_indices():
     end = datetime.today()
-    start = end - timedelta(days=10)
+    start = end - timedelta(days=15)  # pega dias suficientes para 5 pregões
 
     ibov = yf.download("^BVSP", start=start, end=end, interval="1d")
     ifix = yf.download("IFIX.SA", start=start, end=end, interval="1d")
@@ -105,19 +105,22 @@ ibov_df, ifix_df = load_indices()
 col1, col2 = st.columns([6, 1])
 
 with col2:
-    indice = st.radio("Índice", ["IBOV", "IFIX"])
+    indice = st.radio("Índice", ["IBOV", "IFIX"], horizontal=True)
 
-if indice == "IBOV":
-    data = ibov_df
-else:
-    data = ifix_df
+data = ibov_df if indice == "IBOV" else ifix_df
 
-if not data.empty:
-    close = data["Close"].dropna()
+if not data.empty and len(data) >= 2:
 
-    # Ajusta escala para destacar variação
-    y_min = close.min() * 0.995
-    y_max = close.max() * 1.005
+    close = data["Close"].dropna().tail(5)
+
+    # remove horário do eixo X
+    close.index = close.index.date
+
+    # ajuste fino da escala
+    y_min = close.min() * 0.998
+    y_max = close.max() * 1.002
+
+    cor = "#00cc96" if close.iloc[-1] >= close.iloc[0] else "#ef553b"
 
     fig = go.Figure()
 
@@ -125,21 +128,24 @@ if not data.empty:
         x=close.index,
         y=close.values,
         mode="lines+markers",
-        line=dict(width=3),
-        fill="tozeroy"
+        line=dict(width=3, color=cor),
+        fill="tozeroy",
+        fillcolor=cor.replace(")", ",0.15)").replace("rgb", "rgba")
     ))
 
     fig.update_layout(
         height=350,
-        margin=dict(l=20, r=20, t=20, b=20),
+        margin=dict(l=10, r=10, t=10, b=10),
         yaxis=dict(range=[y_min, y_max]),
-        template="plotly_dark"
+        xaxis=dict(showgrid=False),
+        template="plotly_dark",
+        showlegend=False
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
 else:
-    st.warning("Não foi possível carregar dados do índice.")
+    st.warning("Dados insuficientes para gerar gráfico.")
 
 cols = st.columns(3)  # 👈 ESSA LINHA É OBRIGATÓRIA
 
@@ -153,6 +159,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
