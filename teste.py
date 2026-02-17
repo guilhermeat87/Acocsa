@@ -7,7 +7,7 @@ st.set_page_config(page_title="Monitor B3", layout="wide")
 SHEET_ID = "COLE_AQUI_O_ID"
 GID = "0"  # mude se necessário
 
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/1bNKnU-HzvB--KfREcXJAmxtvtEOuqDmeFo59QGJX0hw/edit?usp=sharing{GID}"
 
 MAX_ATIVOS = 10
 
@@ -99,3 +99,4 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
