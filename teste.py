@@ -2,10 +2,12 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
+import plotly.graph_objects as go
+
 
 st.set_page_config(page_title="Monitor de Ativos", layout="wide")
 
-# 🔹 Cole aqui o ID da sua planilha
+# Leitura da planilha
 SHEET_ID = "1bNKnU-HzvB--KfREcXJAmxtvtEOuqDmeFo59QGJX0hw"
 GID = "0"
 
@@ -85,22 +87,60 @@ df_user = df[df["TICKER"].isin(st.session_state.watchlist)]
 st.subheader("Resumo")
 st.dataframe(df_user, use_container_width=True)
 
-
-st.subheader("📊 IBOVESPA - Últimos 5 dias")
+st.subheader("📊 Índices de Mercado")
 
 @st.cache_data(ttl=300)
-def load_ibov():
+def load_indices():
     end = datetime.today()
-    start = end - timedelta(days=10)  # pega mais dias para garantir 5 pregões
+    start = end - timedelta(days=10)
+
     ibov = yf.download("^BVSP", start=start, end=end, interval="1d")
-    return ibov
+    ifix = yf.download("IFIX.SA", start=start, end=end, interval="1d")
 
-ibov_df = load_ibov()
+    return ibov, ifix
 
-if not ibov_df.empty:
-    st.line_chart(ibov_df["Close"])
+
+ibov_df, ifix_df = load_indices()
+
+col1, col2 = st.columns([6, 1])
+
+with col2:
+    indice = st.radio("Índice", ["IBOV", "IFIX"])
+
+if indice == "IBOV":
+    data = ibov_df
 else:
-    st.warning("Não foi possível carregar dados do IBOV.")
+    data = ifix_df
+
+if not data.empty:
+    close = data["Close"].dropna()
+
+    # Ajusta escala para destacar variação
+    y_min = close.min() * 0.995
+    y_max = close.max() * 1.005
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=close.index,
+        y=close.values,
+        mode="lines+markers",
+        line=dict(width=3),
+        fill="tozeroy"
+    ))
+
+    fig.update_layout(
+        height=350,
+        margin=dict(l=20, r=20, t=20, b=20),
+        yaxis=dict(range=[y_min, y_max]),
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+else:
+    st.warning("Não foi possível carregar dados do índice.")
+
 
 
 for i, row in enumerate(df_user.itertuples(index=False)):
@@ -113,6 +153,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
