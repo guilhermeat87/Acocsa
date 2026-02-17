@@ -14,7 +14,7 @@ MAX_ATIVOS = 10
 
 @st.cache_data(ttl=300)
 def load_sheet():
-    df = pd.read_csv(CSV_URL)
+    df = pd.read_csv(CSV_URL, engine="python", sep=";", on_bad_lines="skip")
     
     # Normalizações básicas
     df["TICKER"] = df["TICKER"].astype(str).str.upper().str.strip()
@@ -99,4 +99,5 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
