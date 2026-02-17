@@ -96,19 +96,23 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("Minha lista")
 
 for t in st.session_state.watchlist:
-    c1, c2 = st.sidebar.columns([4,1])
+    c1, c2 = st.sidebar.columns([4, 1])
     c1.write(t)
+
     if c2.button("❌", key=f"del_{t}"):
-    st.session_state.watchlist.remove(t)
 
-    ws = get_watchlist_sheet()
-    records = ws.get_all_records()
-    for i, row in enumerate(records, start=2):
-        if row["USER_ID"] == user_id and row["TICKER"] == t:
-            ws.delete_rows(i)
-            break
+        st.session_state.watchlist.remove(t)
 
-    st.rerun()
+        ws = get_watchlist_sheet()
+        records = ws.get_all_records()
+
+        for i, row in enumerate(records, start=2):
+            if row["USER_ID"] == user_id and row["TICKER"] == t:
+                ws.delete_rows(i)
+                break
+
+        st.rerun()
+
 
 if st.sidebar.button("🧹 Limpar lista"):
     st.session_state.watchlist = []
@@ -199,6 +203,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
