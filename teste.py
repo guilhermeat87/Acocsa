@@ -12,26 +12,24 @@ CSV_URL = f"https://docs.google.com/spreadsheets/d/1bNKnU-HzvB--KfREcXJAmxtvtEOu
 MAX_ATIVOS = 10
 
 
+
 @st.cache_data(ttl=300)
 def load_sheet():
-    df = pd.read_csv(CSV_URL, engine="python", sep=";", on_bad_lines="skip")
-    
-    # Normalizações básicas
+    try:
+        df = pd.read_csv(CSV_URL, engine="python", sep=";", on_bad_lines="skip")
+    except:
+        df = pd.read_csv(CSV_URL, engine="python", sep=",", on_bad_lines="skip")
+
+    # normaliza os nomes das colunas
+    df.columns = df.columns.astype(str).str.strip().str.upper()
+
+    # valida se existe a coluna ticker
+    if "TICKER" not in df.columns:
+        st.error("Coluna TICKER não encontrada. Colunas detectadas:")
+        st.write(df.columns.tolist())
+        st.stop()
+
     df["TICKER"] = df["TICKER"].astype(str).str.upper().str.strip()
-    
-    # Converter numéricos se necessário
-    for col in df.columns:
-        if "Preço" in col or "%" in col or "Margem" in col:
-            df[col] = (
-                df[col]
-                .astype(str)
-                .str.replace("R$", "", regex=False)
-                .str.replace("%", "", regex=False)
-                .str.replace(".", "", regex=False)
-                .str.replace(",", ".", regex=False)
-                .str.strip()
-            )
-            df[col] = pd.to_numeric(df[col], errors="ignore")
 
     return df
 
@@ -99,5 +97,6 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
