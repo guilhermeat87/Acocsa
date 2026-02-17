@@ -4,10 +4,10 @@ import pandas as pd
 st.set_page_config(page_title="Monitor B3", layout="wide")
 
 # 🔹 Cole aqui o ID da sua planilha
-SHEET_ID = "COLE_AQUI_O_ID"
-GID = "0"  # mude se necessário
+SHEET_ID = "1bNKnU-HzvB--KfREcXJAmxtvtEOuqDmeFo59QGJX0hw"
+GID = "0"
 
-CSV_URL = f"https://docs.google.com/spreadsheets/d/1bNKnU-HzvB--KfREcXJAmxtvtEOuqDmeFo59QGJX0hw/edit?usp=sharing{GID}"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
 
 MAX_ATIVOS = 10
 
@@ -97,6 +97,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco}" if preco else "Sem dados",
             f"{margem}%" if margem else ""
         )
+
 
 
 
