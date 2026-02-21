@@ -196,21 +196,21 @@ data = ibov_df if indice == "IBOV" else ifix_df
 
 if not data.empty and len(data) >= 2:
 
-   close = data["Close"]
+  close = data["Close"]
 
-# garante que é Series (1 coluna)
 if isinstance(close, pd.DataFrame):
     close = close.iloc[:, 0]
 
 close = close.dropna().tail(5).astype(float)
 
-if len(close) >= 2:
-    first = float(close.iloc[0])
-    last = float(close.iloc[-1])
-    cor = "#00cc96" if last >= first else "#ef553b"
-else:
+if len(close) < 2:
     st.warning("Dados insuficientes para gerar gráfico.")
     st.stop()
+
+first = float(close.iloc[0])
+last = float(close.iloc[-1])
+
+cor = "#00cc96" if last >= first else "#ef553b"
 
     fillcolor = "rgba(0, 204, 150, 0.15)" if cor == "#00cc96" else "rgba(239, 85, 59, 0.15)"
 
@@ -256,6 +256,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco:.2f}" if preco is not None else "Sem dados",
             f"{margem:.2f}%" if pd.notna(margem) else ""
         )
+
 
 
 
