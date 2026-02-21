@@ -6,16 +6,20 @@ import plotly.graph_objects as go
 import gspread
 from google.oauth2.service_account import Credentials
 
-
 st.set_page_config(page_title="Monitor de Ativos", layout="wide")
 
-# Leitura da planilha
+# ==============================
+# CONFIGURAÇÕES
+# ==============================
+
 SHEET_ID = "1bNKnU-HzvB--KfREcXJAmxtvtEOuqDmeFo59QGJX0hw"
 GID = "0"
-
 CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
-
 MAX_ATIVOS = 10
+
+# ==============================
+# GOOGLE SHEETS
+# ==============================
 
 @st.cache_resource
 def get_gspread_client():
@@ -27,13 +31,15 @@ def get_gspread_client():
     creds = Credentials.from_service_account_info(sa_info, scopes=scopes)
     return gspread.authorize(creds)
 
+@st.cache_resource
 def get_watchlist_sheet():
     gc = get_gspread_client()
     sh = gc.open_by_key(SHEET_ID)
     return sh.worksheet("watchlist")
 
-user_id = st.sidebar.text_input("Digite seu e-mail para salvar sua lista")
-
+# ==============================
+# CARREGAMENTO PLANILHA
+# ==============================
 
 @st.cache_data(ttl=300)
 def load_sheet():
@@ -42,12 +48,10 @@ def load_sheet():
     except:
         df = pd.read_csv(CSV_URL, engine="python", sep=",", on_bad_lines="skip")
 
-    # normaliza os nomes das colunas
     df.columns = df.columns.astype(str).str.strip().str.upper()
 
-    # valida se existe a coluna ticker
     if "TICKER" not in df.columns:
-        st.error("Coluna TICKER não encontrada. Colunas detectadas:")
+        st.error("Coluna TICKER não encontrada.")
         st.write(df.columns.tolist())
         st.stop()
 
@@ -55,30 +59,62 @@ def load_sheet():
 
     return df
 
+# ==============================
+# PREÇO AUTOMÁTICO (UPGRADE 6)
+# ==============================
+
+@st.cache_data(ttl=300)
+def get_price(ticker):
+    try:
+        data = yf.download(ticker + ".SA", period="1d", interval="1m", progress=False)
+        return float(data["Close"].iloc[-1])
+    except:
+        return None
+
+# ==============================
+# INÍCIO APP
+# ==============================
+
+st.title("📈 Monitor de Ativos")
+
+st.markdown("""
+<style>
+div[data-testid="metric-container"] {
+    background-color: #111;
+    padding: 15px;
+    border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+df = load_sheet()
 
 if "watchlist" not in st.session_state:
     st.session_state.watchlist = []
 
+user_id = st.sidebar.text_input("Digite seu e-mail para salvar sua lista")
 
-st.title("📈 Monitor de Ativos")
-
-df = load_sheet()
+# ==============================
+# CARREGA LISTA DO USUÁRIO
+# ==============================
 
 if user_id:
     ws = get_watchlist_sheet()
     data = ws.get_all_records()
-
     user_saved = [row["TICKER"] for row in data if row["USER_ID"] == user_id]
     st.session_state.watchlist = user_saved
 
+# ==============================
+# SIDEBAR
+# ==============================
 
 st.sidebar.header("Escolha seus ativos")
 st.sidebar.caption(f"{len(st.session_state.watchlist)}/{MAX_ATIVOS} ativos")
 
 tickers = sorted(df["TICKER"].dropna().unique())
-
 selected = st.sidebar.selectbox("Selecione um ativo", tickers)
 
+# ADICIONAR
 if st.sidebar.button("➕ Adicionar"):
     if not user_id:
         st.sidebar.error("Digite seu e-mail para salvar.")
@@ -92,6 +128,7 @@ if st.sidebar.button("➕ Adicionar"):
         ws.append_row([user_id, selected])
         st.rerun()
 
+# REMOVER
 st.sidebar.markdown("---")
 st.sidebar.subheader("Minha lista")
 
@@ -104,43 +141,49 @@ for t in st.session_state.watchlist:
         st.session_state.watchlist.remove(t)
 
         ws = get_watchlist_sheet()
-        records = ws.get_all_records()
+        cells = ws.get_all_values()
 
-        for i, row in enumerate(records, start=2):
-            if row["USER_ID"] == user_id and row["TICKER"] == t:
+        for i, row in enumerate(cells[1:], start=2):
+            if row[0] == user_id and row[1] == t:
                 ws.delete_rows(i)
                 break
 
         st.rerun()
 
-
 if st.sidebar.button("🧹 Limpar lista"):
     st.session_state.watchlist = []
     st.rerun()
 
+# ==============================
+# SE NÃO HOUVER ATIVOS
+# ==============================
 
 if not st.session_state.watchlist:
     st.info("Selecione até 10 ativos na lateral.")
     st.stop()
 
-
 df_user = df[df["TICKER"].isin(st.session_state.watchlist)]
+
+# ==============================
+# RESUMO
+# ==============================
 
 st.subheader("Resumo")
 st.dataframe(df_user, use_container_width=True)
 
-st.subheader("📊 Índices de Mercado")
+# ==============================
+# ÍNDICES
+# ==============================
 
 @st.cache_data(ttl=300)
 def load_indices():
     end = datetime.today()
-    start = end - timedelta(days=15)  # pega dias suficientes para 5 pregões
+    start = end - timedelta(days=15)
 
-    ibov = yf.download("^BVSP", start=start, end=end, interval="1d")
-    ifix = yf.download("IFIX.SA", start=start, end=end, interval="1d")
+    ibov = yf.download("^BVSP", start=start, end=end, interval="1d", progress=False)
+    ifix = yf.download("IFIX.SA", start=start, end=end, interval="1d", progress=False)
 
     return ibov, ifix
-
 
 ibov_df, ifix_df = load_indices()
 
@@ -154,17 +197,14 @@ data = ibov_df if indice == "IBOV" else ifix_df
 if not data.empty and len(data) >= 2:
 
     close = data["Close"].dropna().tail(5).astype(float)
-
-
-    # remove horário do eixo X
     close.index = close.index.date
 
-    # ajuste fino da escala
     y_min = close.min() * 0.998
     y_max = close.max() * 1.002
 
-    cor = "#00cc96" if float(close.iloc[-1]) >= float(close.iloc[0]) else "#ef553b"
+    cor = "#00cc96" if close.iloc[-1] >= close.iloc[0] else "#ef553b"
 
+    fillcolor = "rgba(0, 204, 150, 0.15)" if cor == "#00cc96" else "rgba(239, 85, 59, 0.15)"
 
     fig = go.Figure()
 
@@ -174,7 +214,7 @@ if not data.empty and len(data) >= 2:
         mode="lines+markers",
         line=dict(width=3, color=cor),
         fill="tozeroy",
-        fillcolor=cor.replace(")", ",0.15)").replace("rgb", "rgba")
+        fillcolor=fillcolor
     ))
 
     fig.update_layout(
@@ -191,17 +231,22 @@ if not data.empty and len(data) >= 2:
 else:
     st.warning("Dados insuficientes para gerar gráfico.")
 
-cols = st.columns(3)  # 👈 ESSA LINHA É OBRIGATÓRIA
+# ==============================
+# MÉTRICAS
+# ==============================
+
+cols = st.columns(3)
 
 for i, row in enumerate(df_user.itertuples(index=False)):
     with cols[i % 3]:
-        preco = getattr(row, "Preço Atual", None)
-        margem = getattr(row, "Margem Seg.", None)
+
+        preco = get_price(row.TICKER)
+        margem = getattr(row, "MARGEM SEG.", None)
 
         st.metric(
             row.TICKER,
-            f"R$ {preco}" if preco else "Sem dados",
-            f"{margem}%" if margem else ""
+            f"R$ {preco:.2f}" if preco is not None else "Sem dados",
+            f"{margem:.2f}%" if pd.notna(margem) else ""
         )
 
 
