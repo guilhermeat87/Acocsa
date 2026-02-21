@@ -41,7 +41,7 @@ def get_watchlist_sheet():
 # CARREGAMENTO PLANILHA
 # ==============================
 
-@st.cache_data(ttl=300)
+"@st.cache_data(ttl=300)
 def load_sheet():
     try:
         df = pd.read_csv(CSV_URL, engine="python", sep=";", on_bad_lines="skip")
@@ -57,7 +57,7 @@ def load_sheet():
 
     df["TICKER"] = df["TICKER"].astype(str).str.upper().str.strip()
 
-    return df
+    return df"
 
 # ==============================
 # PREÇO AUTOMÁTICO (UPGRADE 6)
@@ -260,6 +260,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco:.2f}" if preco is not None else "Sem dados",
             f"{margem:.2f}%" if pd.notna(margem) else ""
         )
+
 
 
 
