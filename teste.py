@@ -195,10 +195,12 @@ df_user = df[df["TICKER"].isin(st.session_state.watchlist)]
 # ÍNDICES
 # ==============================
 
+st.subheader("📊 Índices de Mercado")
+
 @st.cache_data(ttl=300)
 def load_indices():
     end = datetime.today()
-    start = end - timedelta(days=15)
+    start = end - timedelta(days=30)  # mais folga
 
     ibov = yf.download("^BVSP", start=start, end=end, interval="1d", progress=False)
     ifix = yf.download("IFIX.SA", start=start, end=end, interval="1d", progress=False)
@@ -208,17 +210,22 @@ def load_indices():
 ibov_df, ifix_df = load_indices()
 
 col1, col2 = st.columns([6, 1])
-
 with col2:
     indice = st.radio("Índice", ["IBOV", "IFIX"], horizontal=True)
 
 data = ibov_df if indice == "IBOV" else ifix_df
 
-if not data.empty and len(data) >= 2:
+# achata colunas multiindex (às vezes o yfinance devolve assim)
+if isinstance(data.columns, pd.MultiIndex):
+    data.columns = data.columns.get_level_values(0)
 
-    close = data["Close"]
+if data.empty or "Close" not in data.columns:
+    st.warning("Sem dados para o índice selecionado.")
+    st.stop()
 
-# Se vier como DataFrame (multi-coluna), pega só a 1ª coluna
+close = data["Close"]
+
+# Se por algum motivo vier como DataFrame, pega só a 1ª coluna
 if isinstance(close, pd.DataFrame):
     close = close.iloc[:, 0]
 
@@ -228,10 +235,9 @@ if len(close) < 2:
     st.warning("Dados insuficientes para gerar gráfico.")
     st.stop()
 
-# Remove horário do eixo X (datas)
+# eixo X sem horário
 close.index = close.index.date
 
-# Escala do gráfico
 y_min = close.min() * 0.998
 y_max = close.max() * 1.002
 
@@ -242,7 +248,6 @@ cor = "#00cc96" if last >= first else "#ef553b"
 fillcolor = "rgba(0, 204, 150, 0.15)" if cor == "#00cc96" else "rgba(239, 85, 59, 0.15)"
 
 fig = go.Figure()
-
 fig.add_trace(go.Scatter(
     x=close.index,
     y=close.values,
@@ -284,6 +289,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco:.2f}",
             delta_txt
         )
+
 
 
 
