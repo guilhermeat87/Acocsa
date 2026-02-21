@@ -196,7 +196,7 @@ data = ibov_df if indice == "IBOV" else ifix_df
 
 if not data.empty and len(data) >= 2:
 
-close = data["Close"]
+    close = data["Close"]
 
 # Se vier como DataFrame (multi-coluna), pega só a 1ª coluna
 if isinstance(close, pd.DataFrame):
@@ -260,6 +260,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco:.2f}" if preco is not None else "Sem dados",
             f"{margem:.2f}%" if pd.notna(margem) else ""
         )
+
 
 
 
