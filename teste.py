@@ -64,13 +64,33 @@ def load_sheet():
 # ==============================
 
 @st.cache_data(ttl=300)
-def get_price(ticker):
+def get_price_and_change(ticker: str):
+    """
+    Retorna (preco_atual, delta_reais, delta_percentual)
+    delta baseado no fechamento anterior (mais estável).
+    """
+    t = yf.Ticker(ticker + ".SA")
     try:
-        data = yf.download(ticker + ".SA", period="1d", interval="1m", progress=False)
-        return float(data["Close"].iloc[-1])
-    except:
-        return None
+        info = t.fast_info  # mais rápido quando disponível
+        last = float(info["last_price"])
+        prev = float(info["previous_close"])
+        delta = last - prev
+        delta_pct = (delta / prev) * 100 if prev else 0.0
+        return last, delta, delta_pct
+    except Exception:
+        # fallback
+        try:
+            hist = t.history(period="5d", interval="1d")
+            if hist.empty or "Close" not in hist:
+                return None, None, None
 
+            last_close = float(hist["Close"].dropna().iloc[-1])
+            prev_close = float(hist["Close"].dropna().iloc[-2]) if len(hist["Close"].dropna()) >= 2 else last_close
+            delta = last_close - prev_close
+            delta_pct = (delta / prev_close) * 100 if prev_close else 0.0
+            return last_close, delta, delta_pct
+        except Exception:
+            return None, None, None
 # ==============================
 # INÍCIO APP
 # ==============================
@@ -251,15 +271,20 @@ cols = st.columns(3)
 
 for i, row in enumerate(df_user.itertuples(index=False)):
     with cols[i % 3]:
+        preco, delta, delta_pct = get_price_and_change(row.TICKER)
 
-        preco = get_price(row.TICKER)
-        margem = getattr(row, "MARGEM SEG.", None)
+        if preco is None:
+            st.metric(row.TICKER, "Sem dados", "")
+            continue
+
+        delta_txt = f"R$ {delta:+.2f} ({delta_pct:+.2f}%)" if delta is not None else ""
 
         st.metric(
             row.TICKER,
-            f"R$ {preco:.2f}" if preco is not None else "Sem dados",
-            f"{margem:.2f}%" if pd.notna(margem) else ""
+            f"R$ {preco:.2f}",
+            delta_txt
         )
+
 
 
 
