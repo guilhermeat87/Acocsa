@@ -196,8 +196,9 @@ data = ibov_df if indice == "IBOV" else ifix_df
 
 if not data.empty and len(data) >= 2:
 
-  close = data["Close"]
+close = data["Close"]
 
+# Se vier como DataFrame (multi-coluna), pega só a 1ª coluna
 if isinstance(close, pd.DataFrame):
     close = close.iloc[:, 0]
 
@@ -207,37 +208,40 @@ if len(close) < 2:
     st.warning("Dados insuficientes para gerar gráfico.")
     st.stop()
 
+# Remove horário do eixo X (datas)
+close.index = close.index.date
+
+# Escala do gráfico
+y_min = close.min() * 0.998
+y_max = close.max() * 1.002
+
 first = float(close.iloc[0])
 last = float(close.iloc[-1])
 
 cor = "#00cc96" if last >= first else "#ef553b"
-
 fillcolor = "rgba(0, 204, 150, 0.15)" if cor == "#00cc96" else "rgba(239, 85, 59, 0.15)"
 
-    fig = go.Figure()
+fig = go.Figure()
 
-    fig.add_trace(go.Scatter(
-        x=close.index,
-        y=close.values,
-        mode="lines+markers",
-        line=dict(width=3, color=cor),
-        fill="tozeroy",
-        fillcolor=fillcolor
-    ))
+fig.add_trace(go.Scatter(
+    x=close.index,
+    y=close.values,
+    mode="lines+markers",
+    line=dict(width=3, color=cor),
+    fill="tozeroy",
+    fillcolor=fillcolor
+))
 
-    fig.update_layout(
-        height=350,
-        margin=dict(l=10, r=10, t=10, b=10),
-        yaxis=dict(range=[y_min, y_max]),
-        xaxis=dict(showgrid=False),
-        template="plotly_dark",
-        showlegend=False
-    )
+fig.update_layout(
+    height=350,
+    margin=dict(l=10, r=10, t=10, b=10),
+    yaxis=dict(range=[y_min, y_max]),
+    xaxis=dict(showgrid=False),
+    template="plotly_dark",
+    showlegend=False
+)
 
-    st.plotly_chart(fig, use_container_width=True)
-
-else:
-    st.warning("Dados insuficientes para gerar gráfico.")
+st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
 # MÉTRICAS
@@ -256,6 +260,7 @@ for i, row in enumerate(df_user.itertuples(index=False)):
             f"R$ {preco:.2f}" if preco is not None else "Sem dados",
             f"{margem:.2f}%" if pd.notna(margem) else ""
         )
+
 
 
 
